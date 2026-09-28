@@ -45,8 +45,8 @@ android {
     applicationId = "app.marlboroadvance.mpvex"
     minSdk = 26
     targetSdk = 36
-    versionCode = 132
-    versionName = "1.3.2"
+    versionCode = 133
+    versionName = "1.3.3"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -256,7 +256,8 @@ dependencies {
   // Use local AAR instead of JitPack
   // implementation(libs.mediainfo.lib)
   implementation(files("libs/mediainfoAndroid-v1.0.0-fix.aar"))
-  implementation(files("libs/mpv-android-lib-v0.0.1.aar"))
+  // 改用 Maven Central 官方包，不再随仓库携带 77.6MB 的本地 AAR
+  implementation(libs.mpv.android)
 
   // Network protocol libraries
   implementation(libs.smbj)

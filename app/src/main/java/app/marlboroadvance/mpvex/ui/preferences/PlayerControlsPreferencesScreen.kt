@@ -196,7 +196,7 @@ object PlayerControlsPreferencesScreen : Screen {
               SeekbarStyle.entries.forEachIndexed { index, style ->
                 ListItem(
                   headlineContent = {
-                    Text(text = style.name)
+                    Text(text = style.displayName)
                   },
                   trailingContent = {
                     RadioButton(
