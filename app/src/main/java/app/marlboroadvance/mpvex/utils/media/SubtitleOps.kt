@@ -1,6 +1,8 @@
 package app.marlboroadvance.mpvex.utils.media
 
 import android.util.Log
+import app.marlboroadvance.mpvex.preferences.SubtitleAutoSelectMode
+import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
 import app.marlboroadvance.mpvex.repository.NetworkRepository
 import app.marlboroadvance.mpvex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import `is`.xyz.mpv.MPVLib
@@ -18,6 +20,7 @@ import java.util.Locale
 object SubtitleOps : KoinComponent {
   private const val TAG = "SubtitleOps"
   private val networkRepository: NetworkRepository by inject()
+  private val subtitlesPreferences: SubtitlesPreferences by inject()
 
   private fun shouldSkipNetworkSubtitleAutoload(videoFilePath: String, videoFileName: String): Boolean {
     val p = videoFilePath.lowercase(Locale.getDefault())
@@ -196,11 +199,30 @@ object SubtitleOps : KoinComponent {
       } ?: emptyList()
 
     if (subtitles.isNotEmpty()) {
+      val mode = subtitlesPreferences.autoSelectMode.get()
+      var preferredLangs =
+        subtitlesPreferences.preferredLanguages.get()
+          .split(",")
+          .map { it.trim().lowercase(Locale.getDefault()) }
+          .filter { it.isNotEmpty() }
+      if (preferredLangs.isEmpty()) preferredLangs = listOf("eng", "en")
+
+      // Order candidates so the one selected below follows the user's auto-select
+      // rule (same name / preferred language); ties keep the directory listing order.
+      val ordered =
+        subtitles.sortedByDescending { file ->
+          SubtitleSelection.rankKey(
+            mode = mode,
+            sameName = SubtitleSelection.isSameName(file.nameWithoutExtension, baseName),
+            langHit = SubtitleSelection.langMatches(file.nameWithoutExtension, baseName, preferredLangs),
+          )
+        }
+
       withContext(Dispatchers.Main) {
-        subtitles.forEachIndexed { index, subtitle ->
+        ordered.forEachIndexed { index, subtitle ->
           // MPV command format: sub-add <url> [<flags> [<title>]]
-          // Use "select" for the first autoloaded subtitle so it is enabled by default
-          val flag = if (index == 0) "select" else "auto"
+          // "select" the best-ranked subtitle so it is enabled by default
+          val flag = if (index == 0 && mode != SubtitleAutoSelectMode.Off) "select" else "auto"
           MPVLib.command("sub-add", subtitle.absolutePath, flag, subtitle.name)
           Log.d(TAG, "Loaded local subtitle: ${subtitle.name} (flag=$flag)")
         }

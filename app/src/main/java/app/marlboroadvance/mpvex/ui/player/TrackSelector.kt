@@ -2,7 +2,9 @@ package app.marlboroadvance.mpvex.ui.player
 
 import android.util.Log
 import app.marlboroadvance.mpvex.preferences.AudioPreferences
+import app.marlboroadvance.mpvex.preferences.SubtitleAutoSelectMode
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
+import app.marlboroadvance.mpvex.utils.media.SubtitleSelection
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.delay
 
@@ -217,6 +219,12 @@ class TrackSelector(
 
   private suspend fun ensureSubtitleTrackSelected(tracks: List<Track>, hasState: Boolean) {
     try {
+      val selectMode = subtitlesPreferences.autoSelectMode.get()
+      if (selectMode == SubtitleAutoSelectMode.Off) {
+        Log.d(TAG, "Smart Sub: Auto-select rule is off. Skipping.")
+        return
+      }
+
       val currentSid = MPVLib.getPropertyInt("sid") ?: 0
 
       // Respect manual "Subtitles Off" state
@@ -246,17 +254,33 @@ class TrackSelector(
       val ignoreSubs = listOf("signs", "songs", "lyrics", "forced", "sdh", "colored", "karaoke")
       val subTracks = tracks.filter { it.type == "sub" }
 
-      // PASS 00: EXTERNAL TRACK OVERRIDE (Protects manually loaded subtitle files)
-      for (track in subTracks) {
-        if (track.external) {
-          if (currentSid == track.id) {
-            Log.d(TAG, "Smart Sub: External Subtitle Detected (id=${track.id}) [Already Active. Skipping Change.]")
+      // PASS 00: EXTERNAL TRACK OVERRIDE (rule-based, mirrors SubtitleOps ordering)
+      val externalTracks = subTracks.filter { it.external }
+      var externalFallback: Track? = null
+      if (externalTracks.isNotEmpty()) {
+        val videoStem = (MPVLib.getPropertyString("filename") ?: "").substringBeforeLast('.')
+        fun externalRank(track: Track): Int {
+          val stem = track.title.substringBeforeLast('.')
+          return SubtitleSelection.rankKey(
+            mode = selectMode,
+            sameName = SubtitleSelection.isSameName(stem, videoStem),
+            langHit = SubtitleSelection.langMatches(stem, videoStem, preferredLangs),
+          )
+        }
+
+        val best = externalTracks.maxByOrNull { externalRank(it) }
+        if (best != null && externalRank(best) > 0) {
+          if (currentSid == best.id) {
+            Log.d(TAG, "Smart Sub: External Subtitle rule match (id=${best.id}) [Already Active. Skipping Change.]")
           } else {
-            Log.d(TAG, "Smart Sub: External Subtitle Detected (id=${track.id}) [Applied]")
-            MPVLib.setPropertyInt("sid", track.id)
+            Log.d(TAG, "Smart Sub: External Subtitle rule match (id=${best.id}) [Applied]")
+            MPVLib.setPropertyInt("sid", best.id)
           }
           return
         }
+        // No rule hit: keep the best external track as the final fallback,
+        // after in-file track passes get their chance.
+        externalFallback = best
       }
 
       // PASS A0: KEEP FILE'S NATIVE DEFAULT JAPANESE SUBS FOR ANIME
@@ -331,6 +355,18 @@ class TrackSelector(
             return
           }
         }
+      }
+
+      // Final fallback: first external track (legacy behavior)
+      val fallback = externalFallback
+      if (fallback != null) {
+        if (currentSid == fallback.id) {
+          Log.d(TAG, "Smart Sub: External Subtitle Fallback (id=${fallback.id}) [Already Active. Skipping Change.]")
+        } else {
+          Log.d(TAG, "Smart Sub: External Subtitle Fallback (id=${fallback.id}) [Applied]")
+          MPVLib.setPropertyInt("sid", fallback.id)
+        }
+        return
       }
 
     } catch (e: Exception) {

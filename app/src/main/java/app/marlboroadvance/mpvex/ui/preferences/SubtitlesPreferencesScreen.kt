@@ -41,9 +41,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.marlboroadvance.mpvex.R
+import app.marlboroadvance.mpvex.preferences.SubtitleAutoSelectMode
 import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
@@ -56,6 +58,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.SwitchPreference
@@ -203,6 +206,23 @@ object SubtitlesPreferencesScreen : Screen {
                 summary = {
                   Text(
                     stringResource(R.string.pref_subtitles_autoload_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              val autoSelectMode by preferences.autoSelectMode.collectAsState()
+              ListPreference(
+                value = autoSelectMode,
+                onValueChange = { preferences.autoSelectMode.set(it) },
+                values = SubtitleAutoSelectMode.entries,
+                valueToText = { AnnotatedString(context.getString(it.title)) },
+                title = { Text(stringResource(R.string.pref_subtitles_auto_select_title)) },
+                summary = {
+                  Text(
+                    context.getString(autoSelectMode.title),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },

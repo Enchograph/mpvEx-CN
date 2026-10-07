@@ -212,6 +212,10 @@
     <string name="pref_subtitles_fonts_dir">字体目录</string>
     <string name="pref_subtitles_autoload_title">自动加载字幕</string>
     <string name="pref_subtitles_autoload_summary">自动加载同名的外部字幕。</string>
+    <string name="pref_subtitles_auto_select_title">自动选中规则</string>
+    <string name="pref_subtitles_auto_select_same_name">同名优先</string>
+    <string name="pref_subtitles_auto_select_preferred_language">首选语言优先</string>
+    <string name="pref_subtitles_auto_select_off">不自动选中（仅加载）</string>
 
     <string name="pref_audio">音频</string>
     <string name="pref_audio_summary">首选语言、音频声道、音高校正</string>

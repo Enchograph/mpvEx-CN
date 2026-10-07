@@ -1,5 +1,6 @@
 package app.marlboroadvance.mpvex.preferences
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.FormatAlignJustify
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.preference.PreferenceStore
 import app.marlboroadvance.mpvex.preferences.preference.getEnum
 import app.marlboroadvance.mpvex.ui.player.controls.components.panels.SubtitlesBorderStyle
@@ -17,6 +19,7 @@ class SubtitlesPreferences(
 ) {
   val preferredLanguages = preferenceStore.getString("sub_preferred_languages")
   val autoloadMatchingSubtitles = preferenceStore.getBoolean("sub_autoload_enabled", true)
+  val autoSelectMode = preferenceStore.getEnum("sub_auto_select_mode", SubtitleAutoSelectMode.SameName)
 
   val fontsFolder = preferenceStore.getString("sub_fonts_folder")
   val font = preferenceStore.getString("sub_font", "")
@@ -55,4 +58,12 @@ enum class SubtitleJustification(
   Center("center", Icons.Default.FormatAlignCenter),
   Right("right", Icons.AutoMirrored.Default.FormatAlignRight),
   Auto("auto", Icons.Default.FormatAlignJustify),
+}
+
+enum class SubtitleAutoSelectMode(
+  @StringRes val title: Int,
+) {
+  SameName(R.string.pref_subtitles_auto_select_same_name),
+  PreferredLanguage(R.string.pref_subtitles_auto_select_preferred_language),
+  Off(R.string.pref_subtitles_auto_select_off),
 }
